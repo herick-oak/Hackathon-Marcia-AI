@@ -5,3 +5,4 @@ langchain
 langchain-groq
 python-dotenv
 txline
+plotly
