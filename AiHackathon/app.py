@@ -30,9 +30,10 @@ if "opportunities" not in st.session_state:
 # Carregar fixtures
 if not st.session_state.fixtures:
     with st.spinner("Buscando fixtures..."):
-        st.session_state.fixtures = client.get_fixtures_snapshot()
+        # O método correto na biblioteca txline geralmente é get_fixtures()
+        st.session_state.fixtures = client.get_fixtures()
 
-fixtures = st.session_state.fixtures
+fixtures = st.session_state.fixture
 
 if not fixtures:
     st.warning("Nenhum fixture encontrado.")
