@@ -30,7 +30,8 @@ if "opportunities" not in st.session_state:
 # Carregar fixtures
 if not st.session_state.fixtures:
     with st.spinner("Buscando fixtures..."):
-        st.session_state.fixtures = client.fixtures()
+        # O list() garante que transformamos o resultado em uma lista real
+        st.session_state.fixtures = list(client.fixtures())
 
 fixtures = st.session_state.fixtures
 
