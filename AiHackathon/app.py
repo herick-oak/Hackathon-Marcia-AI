@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timezone
 import time
 
-from txline_client import TxLineClient
+from txline import TxlineClient
 import database as db
 import data_processor as processor
 from ai_analyst import AIAnalyst
