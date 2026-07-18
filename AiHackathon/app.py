@@ -11,7 +11,7 @@ from ai_analyst import AIAnalyst
 
 st.set_page_config(page_title="TxLINE + IA Marcia Sensitiva", page_icon="📈", layout="wide")
 
-client = TxLineClient()
+client = TxlineClient()
 ai_analyst = AIAnalyst()
 
 try:
