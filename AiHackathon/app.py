@@ -29,11 +29,15 @@ if "opportunities" not in st.session_state:
 
 # Carregar fixtures
 if not st.session_state.fixtures:
-    with st.spinner("Buscando fixtures..."):
-        # O método correto na biblioteca txline geralmente é get_fixtures()
-        st.session_state.fixtures = client.get_fixtures()
-
-fixtures = st.session_state.fixture
+    with st.spinner("Descobrindo métodos disponíveis..."):
+        # Lista todos os métodos públicos do client
+        metodos = [m for m in dir(client) if not m.startswith('_') and callable(getattr(client, m))]
+        
+        st.error("🔍 Métodos disponíveis no TxlineClient:")
+        st.write(metodos)
+        
+        st.info("💡 Copie essa lista e me envie para eu te dizer qual método usar!")
+        st.stop()
 
 if not fixtures:
     st.warning("Nenhum fixture encontrado.")
