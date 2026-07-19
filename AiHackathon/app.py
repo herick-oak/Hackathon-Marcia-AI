@@ -85,36 +85,51 @@ if not fixtures:
 st.sidebar.title(" Radar")
 scan = st.sidebar.button("📡 Escanear Mercado")
 
+# ============================================================
+# PATCH: substitua o bloco "if scan: ... st.rerun()" no app.py
+# por este trecho abaixo (mantém tudo igual, só adiciona debug)
+# ============================================================
+
 if scan:
     oportunidades = []
     progress = st.sidebar.progress(0)
     total = min(len(fixtures), 15)
+    debug_info = []
 
     for idx, fixture in enumerate(fixtures[:total]):
         progress.progress((idx + 1) / total)
         fixture_id = fixture["FixtureId"]
 
         updates = client.odds().live_updates_by_fixture(fixture_id)
+        linha = f"Fixture {fixture_id}: {len(updates) if updates else 0} updates de odds"
+
         if not updates:
+            debug_info.append(linha + " -> pulado (sem updates)")
             continue
 
         db.save_odds_to_db(fixture_id, updates)
 
-        # Tenta diferentes tipos de mercado
         analysis_df = db.get_market_history(fixture_id, "1X2", 0)
         if analysis_df.empty:
             analysis_df = db.get_market_history(fixture_id, "MATCHRESULT", 0)
-        
+
         if analysis_df.empty:
+            debug_info.append(linha + " -> pulado (sem histórico 1X2/MATCHRESULT no banco)")
             continue
 
         analysis = processor.analyze_odds_movement(analysis_df, "1X2", 0)
-        
+
         if analysis["status"] != "success":
+            debug_info.append(linha + f" -> pulado (analyze status={analysis['status']}: {analysis.get('message')})")
             continue
 
+        linha += f" -> variação: {analysis['variacao_pct']}%"
+
         if abs(analysis["variacao_pct"]) < 3:
+            debug_info.append(linha + " -> abaixo do limite de 3%, ignorado")
             continue
+
+        debug_info.append(linha + " -> OPORTUNIDADE!")
 
         home = fixture["Participant1"] if fixture["Participant1IsHome"] else fixture["Participant2"]
         away = fixture["Participant2"] if fixture["Participant1IsHome"] else fixture["Participant1"]
@@ -128,7 +143,18 @@ if scan:
 
     progress.empty()
     st.session_state.opportunities = oportunidades
+    st.session_state.debug_scan = debug_info
     st.rerun()
+
+# ============================================================
+# PATCH 2: logo depois do bloco "if st.session_state.opportunities: ... else: ..."
+# adicione isto:
+# ============================================================
+
+if "debug_scan" in st.session_state:
+    with st.expander("🔍 Debug do último scan", expanded=not st.session_state.opportunities):
+        for linha in st.session_state.debug_scan:
+            st.write(linha)
 
 # Exibir oportunidades
 # Exibir oportunidades
