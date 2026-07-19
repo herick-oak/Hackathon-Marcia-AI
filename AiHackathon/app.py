@@ -7,6 +7,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timezone
 import time
+import json
 
 from txline import TxlineClient, ApiToken, GuestJwt
 import database as db
@@ -158,7 +159,10 @@ if st.session_state.opportunities:
                                  xaxis_title="Tempo", yaxis_title="Odd")
                 st.plotly_chart(fig, use_container_width=True)
 
-            timeline = client.scores().historical_by_fixture(opp["fixture_id"])
+            try:
+                timeline = client.scores().historical_by_fixture(opp["fixture_id"])
+            except json.JSONDecodeError:
+                timeline = []
             timeline_records = None
             if timeline:
                 db.save_score_events_to_db(opp["fixture_id"], timeline)
@@ -219,7 +223,7 @@ def render_game(game):
             with st.spinner("Consultando API..."):
                 try:
                     # Tenta buscar updates primeiro
-                    updates = client.get_live_odds_updates(fid)
+                    updates = client.odds().live_updates_by_fixture(fid)
                     
                     if not updates:
                         st.info("Sem updates ao vivo. Tentando snapshot...")
@@ -310,7 +314,10 @@ def render_game(game):
                         return
 
                     # Busca timeline
-                    timeline = client.get_score_sequence(fid)
+                    try:
+                        timeline = client.scores().historical_by_fixture(fid)
+                    except json.JSONDecodeError:
+                        timeline = []
                     if timeline:
                         db.save_score_events_to_db(fid, timeline)
                         timeline_df = db.get_score_timeline(fid)
