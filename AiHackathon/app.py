@@ -54,7 +54,7 @@ if not st.session_state.fixtures:
         try:
             # Pega os headers de autenticação que já configuramos
             auth_headers = client.auth_headers(require_api_token=True).to_headers()
-            base_url = os.getenv("TXLINE_BASE_URL", "https://txline-dev.txodds.com")
+            base_url = client.config.api_base
             
             # Faz a requisição MANUALMENTE forçando gzip/identity para evitar o bug do zstd
             with httpx.Client() as http:
