@@ -1,9 +1,10 @@
-import os 
+import os
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timezone
 import time
+import httpx
 
 from txline import TxlineClient, ApiToken, GuestJwt
 import database as db
@@ -12,22 +13,20 @@ from ai_analyst import AIAnalyst
 
 st.set_page_config(page_title="TxLINE + IA Marcia Sensitiva", page_icon="📈", layout="wide")
 
-# Configura o client com as credenciais dos Secrets
+# 1. Inicializa o client
 client = TxlineClient()
 
+# 2. Pega as chaves dos Secrets
 jwt_str = os.getenv("TXLINE_JWT")
 api_str = os.getenv("TXLINE_API_TOKEN")
 
-# Verifica se as chaves foram lidas
 if not jwt_str or not api_str:
-    st.error("❌ Erro: TXLINE_JWT ou TXLINE_API_TOKEN não encontrados nos Secrets!")
+    st.error("❌ Erro: TXLINE_JWT ou TXLINE_API_TOKEN não encontrados nos Secrets do Streamlit!")
     st.stop()
 
-# A biblioteca txline exige que as chaves sejam objetos específicos!
+# 3. Configura com os objetos corretos da biblioteca (resolve o erro 'str' object has no attribute 'as_str')
 client.set_guest_jwt(GuestJwt(jwt_str))
 client.set_api_token(ApiToken(api_str))
-
-# Inicia a sessão
 client.start_guest_session()
 
 ai_analyst = AIAnalyst()
@@ -45,16 +44,35 @@ if "fixtures" not in st.session_state:
 if "opportunities" not in st.session_state:
     st.session_state.opportunities = []
 
-# Carregar fixtures
+# 4. Carregar fixtures (MANUAL para evitar o bug de Zstandard da biblioteca txline)
 if not st.session_state.fixtures:
     with st.spinner("Buscando fixtures..."):
-        st.session_state.fixtures = client.fixtures().snapshot()
+        try:
+            # Pega os headers de autenticação que já configuramos
+            auth_headers = client.auth_headers(require_api_token=True).to_headers()
+            base_url = os.getenv("TXLINE_BASE_URL", "https://txline-dev.txodds.com")
+            
+            # Faz a requisição MANUALMENTE forçando gzip/identity para evitar o bug do zstd
+            with httpx.Client() as http:
+                response = http.get(
+                    f"{base_url}/fixtures/snapshot",
+                    headers={**auth_headers, "Accept-Encoding": "gzip, identity"},
+                    timeout=30.0
+                )
+                response.raise_for_status()
+                st.session_state.fixtures = response.json()
+                
+            st.success(f"✅ {len(st.session_state.fixtures)} fixtures carregados com sucesso!")
+        except Exception as e:
+            st.error(f"❌ Erro ao conectar com a API TxLine: {e}")
+            st.info("A API de desenvolvimento pode estar instável. Tente recarregar a página.")
+            st.stop()
 
 fixtures = st.session_state.fixtures
+
 if not fixtures:
     st.warning("Nenhum fixture encontrado.")
     st.stop()
-
 # Sidebar
 st.sidebar.title(" Radar")
 scan = st.sidebar.button("📡 Escanear Mercado")
