@@ -154,17 +154,19 @@ if st.session_state.opportunities:
                                  xaxis_title="Tempo", yaxis_title="Odd")
                 st.plotly_chart(fig, use_container_width=True)
 
-            timeline = client.get_score_sequence(opp["fixture_id"])
+            timeline = client.scores().historical_by_fixture(opp["fixture_id"])
+            timeline_records = None
             if timeline:
                 db.save_score_events_to_db(opp["fixture_id"], timeline)
                 timeline_df = db.get_score_timeline(opp["fixture_id"])
-                if not timeline_df.empty:
-                    st.write("### Timeline")
-                    st.dataframe(timeline_df, use_container_width=True)
+            if not timeline_df.empty:
+                st.write("### Timeline")
+                st.dataframe(timeline_df, use_container_width=True)
+                timeline_records = timeline_df.to_dict("records")
 
-            with st.spinner("Analisando..."):
-                insight = ai_analyst.generate_ai_insight(analysis, opp["home"], opp["away"], timeline)
-                st.info(insight)
+with st.spinner("Analisando..."):
+    insight = ai_analyst.generate_ai_insight(analysis, opp["home"], opp["away"], timeline_records)
+    st.info(insight)
 
 else:
     st.info("Clique em 'Escanear Mercado' para buscar oportunidades.")
