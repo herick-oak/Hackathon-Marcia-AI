@@ -28,17 +28,11 @@ if "opportunities" not in st.session_state:
     st.session_state.opportunities = []
 
 # Carregar fixtures
-with st.spinner("Investigando o FixturesClient..."):
-    fixtures_client = client.fixtures()
-    
-    st.write("### 🔍 Métodos do FixturesClient:")
-    # Lista tudo que podemos fazer com esse objeto
-    metodos_fixtures = [m for m in dir(fixtures_client) if not m.startswith('_')]
-    st.write(metodos_fixtures)
-    
-    st.info("💡 Copie essa nova lista e me envie!")
-    st.stop() # Para o app aqui
+if not st.session_state.fixtures:
+    with st.spinner("Buscando fixtures..."):
+        st.session_state.fixtures = client.fixtures().snapshot()
 
+fixtures = st.session_state.fixtures
 if not fixtures:
     st.warning("Nenhum fixture encontrado.")
     st.stop()
