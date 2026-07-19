@@ -35,7 +35,7 @@ if not jwt_str or not api_str:
 # 3. Configura com os objetos corretos da biblioteca (resolve o erro 'str' object has no attribute 'as_str')
 client.set_guest_jwt(GuestJwt(jwt_str))
 client.set_api_token(ApiToken(api_str))
-client.start_guest_session()
+#client.start_guest_session()
 
 ai_analyst = AIAnalyst()
 
