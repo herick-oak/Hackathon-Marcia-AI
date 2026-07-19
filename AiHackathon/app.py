@@ -28,24 +28,16 @@ if "opportunities" not in st.session_state:
     st.session_state.opportunities = []
 
 # Carregar fixtures
-import inspect
-
-# Debug para entender o método fixtures
-st.write("### 🔍 Debug do método fixtures")
-st.write("Tipo do método:", type(client.fixtures))
-
-if callable(client.fixtures):
-    try:
-        # Mostra quais argumentos o método exige
-        sig = inspect.signature(client.fixtures)
-        st.write("Argumentos necessários:", sig)
-    except Exception as e:
-        st.write("Erro ao ler assinatura:", e)
-else:
-    st.write("fixtures não é uma função, é uma propriedade/objeto.")
-    st.write("Atributos disponíveis:", dir(client.fixtures))
-
-st.stop() # Para o app aqui para você ler
+with st.spinner("Investigando o FixturesClient..."):
+    fixtures_client = client.fixtures()
+    
+    st.write("### 🔍 Métodos do FixturesClient:")
+    # Lista tudo que podemos fazer com esse objeto
+    metodos_fixtures = [m for m in dir(fixtures_client) if not m.startswith('_')]
+    st.write(metodos_fixtures)
+    
+    st.info("💡 Copie essa nova lista e me envie!")
+    st.stop() # Para o app aqui
 
 if not fixtures:
     st.warning("Nenhum fixture encontrado.")
