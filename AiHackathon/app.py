@@ -12,7 +12,8 @@ from ai_analyst import AIAnalyst
 st.set_page_config(page_title="TxLINE + IA Marcia Sensitiva", page_icon="📈", layout="wide")
 
 client = TxlineClient()
-ai_analyst = AIAnalyst()
+client.set_guest_jwt(os.getenv("TXLINE_JWT"))
+client.set_api_token(os.getenv("TXLINE_API_TOKEN"))
 
 try:
     db.init_db()
