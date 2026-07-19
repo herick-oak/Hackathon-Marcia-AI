@@ -90,7 +90,7 @@ if scan:
         progress.progress((idx + 1) / total)
         fixture_id = fixture["FixtureId"]
 
-        updates = client.get_live_odds_updates(fixture_id)
+        updates = client.odds().live_updates_by_fixture(fixture_id)
         if not updates:
             continue
 
@@ -217,7 +217,7 @@ def render_game(game):
                     
                     if not updates:
                         st.info("Sem updates ao vivo. Tentando snapshot...")
-                        updates = client.get_odds_snapshot(fid)
+                        updates = client.odds().snapshot(fid)
                     
                     if updates:
                         st.write(f"✅ API retornou {len(updates)} registros!")
