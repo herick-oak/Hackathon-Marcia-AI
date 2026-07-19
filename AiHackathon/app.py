@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timezone
 import time
 
-from txline import TxlineClient
+from txline import TxlineClient, ApiToken, GuestJwt
 import database as db
 import data_processor as processor
 from ai_analyst import AIAnalyst
@@ -15,18 +15,19 @@ st.set_page_config(page_title="TxLINE + IA Marcia Sensitiva", page_icon="📈", 
 # Configura o client com as credenciais dos Secrets
 client = TxlineClient()
 
-jwt_token = os.getenv("TXLINE_JWT")
-api_token = os.getenv("TXLINE_API_TOKEN")
+jwt_str = os.getenv("TXLINE_JWT")
+api_str = os.getenv("TXLINE_API_TOKEN")
 
-# Debug para garantir que as chaves foram lidas
-if not jwt_token or not api_token:
+# Verifica se as chaves foram lidas
+if not jwt_str or not api_str:
     st.error("❌ Erro: TXLINE_JWT ou TXLINE_API_TOKEN não encontrados nos Secrets!")
     st.stop()
 
-client.set_guest_jwt(jwt_token)
-client.set_api_token(api_token)
+# A biblioteca txline exige que as chaves sejam objetos específicos!
+client.set_guest_jwt(GuestJwt(jwt_str))
+client.set_api_token(ApiToken(api_str))
 
-# Inicia a sessão do convidado (essencial para gerar o objeto de autorização)
+# Inicia a sessão
 client.start_guest_session()
 
 ai_analyst = AIAnalyst()
