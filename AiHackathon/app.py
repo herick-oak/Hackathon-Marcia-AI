@@ -12,9 +12,24 @@ from ai_analyst import AIAnalyst
 
 st.set_page_config(page_title="TxLINE + IA Marcia Sensitiva", page_icon="📈", layout="wide")
 
+# Configura o client com as credenciais dos Secrets
 client = TxlineClient()
-client.set_guest_jwt(os.getenv("TXLINE_JWT"))
-client.set_api_token(os.getenv("TXLINE_API_TOKEN"))
+
+jwt_token = os.getenv("TXLINE_JWT")
+api_token = os.getenv("TXLINE_API_TOKEN")
+
+# Debug para garantir que as chaves foram lidas
+if not jwt_token or not api_token:
+    st.error("❌ Erro: TXLINE_JWT ou TXLINE_API_TOKEN não encontrados nos Secrets!")
+    st.stop()
+
+client.set_guest_jwt(jwt_token)
+client.set_api_token(api_token)
+
+# Inicia a sessão do convidado (essencial para gerar o objeto de autorização)
+client.start_guest_session()
+
+ai_analyst = AIAnalyst()
 
 try:
     db.init_db()
