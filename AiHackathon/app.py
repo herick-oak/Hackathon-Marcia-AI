@@ -1,19 +1,22 @@
 import httpx
+import httpx._client as _httpx_client
+import httpx._decoders as _decoders
 import os
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timezone
 import time
-import httpx._decoders as _decoders
 
 from txline import TxlineClient, ApiToken, GuestJwt
 import database as db
 import data_processor as processor
 from ai_analyst import AIAnalyst
 
+_httpx_client.ACCEPT_ENCODING = "gzip, deflate"
 if hasattr(_decoders, "SUPPORTED_DECODERS"):
     _decoders.SUPPORTED_DECODERS.pop("zstd", None)
+    _decoders.SUPPORTED_DECODERS.pop("br", None)
 
 st.set_page_config(page_title="TxLINE + IA Marcia Sensitiva", page_icon="📈", layout="wide")
 
