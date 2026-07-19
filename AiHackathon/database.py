@@ -62,55 +62,52 @@ def init_db() -> None:
 
 
 def save_odds_to_db(fixture_id: int, odds_data: list) -> None:
+    """odds_data agora é list[txline.odds.OddsPayload] (dataclass), não dict."""
     if not odds_data:
         return
-
+ 
     records = []
-
+ 
     for odd in odds_data:
-        prices = odd.get("Prices") or []
-        pct = odd.get("Pct") or []
-        price_names = odd.get("PriceNames") or []
-        ts = odd.get("Ts")
-        
+        prices = odd.prices or []
+        pct = odd.pct or []
+        price_names = odd.price_names or []
+        ts = odd.ts
+ 
         timestamp = None
         if ts is not None:
             timestamp = pd.to_datetime(ts, unit="ms", utc=True).isoformat()
-
-        super_odds_type = odd.get("SuperOddsType", "")
-        
-        # Extrai o tipo de mercado base (ex: "1X2" de "1X2_PARTICIPANT_RESULT")
+ 
+        super_odds_type = odd.super_odds_type or ""
         market_type = super_odds_type.split("_")[0] if super_odds_type else "UNKNOWN"
-
+ 
         for participant, raw_price in enumerate(prices):
             if raw_price is None:
                 continue
-
+ 
             odd_decimal = raw_price / 1000.0
             probability = None
-
-            # Tenta pegar do Pct da API
+ 
             if participant < len(pct):
                 value = pct[participant]
                 if value not in ("NA", None, ""):
                     try:
                         probability = float(value)
-                    except:
+                    except (TypeError, ValueError):
                         probability = None
-
-            # Se não tiver, calcula implicitamente
+ 
             if probability is None and odd_decimal > 0:
                 probability = (1 / odd_decimal) * 100
-
+ 
             records.append({
                 "fixture_id": fixture_id,
-                "message_id": odd.get("MessageId"),
-                "bookmaker": odd.get("Bookmaker"),
-                "bookmaker_id": odd.get("BookmakerId"),
+                "message_id": odd.message_id,
+                "bookmaker": odd.bookmaker,
+                "bookmaker_id": odd.bookmaker_id,
                 "super_odds_type": super_odds_type,
                 "market_type": market_type,
-                "market_parameters": str(odd.get("MarketParameters")),
-                "market_period": odd.get("MarketPeriod"),
+                "market_parameters": str(odd.market_parameters) if odd.market_parameters is not None else None,
+                "market_period": odd.market_period,
                 "price_names": json.dumps(price_names) if price_names else None,
                 "prices": json.dumps(prices),
                 "participant": participant,
@@ -120,56 +117,62 @@ def save_odds_to_db(fixture_id: int, odds_data: list) -> None:
                 "price_decimal": round(odd_decimal, 3),
                 "probability": round(probability, 3) if probability else None,
                 "implied_probability": round(probability, 3) if probability else None,
-                "in_running": int(odd.get("InRunning", False))
+                "in_running": int(bool(odd.in_running)),
             })
-
+ 
     if not records:
         return
-
+ 
     df = pd.DataFrame(records)
     conn = get_connection()
     df.to_sql("odds_history", conn, if_exists="append", index=False)
     conn.close()
-
+ 
     print(f"✅ {len(df)} odds salvas no banco.")
-
-
+ 
+ 
 def save_score_events_to_db(fixture_id: int, events: list) -> None:
+    """events agora é list[txline.scores.Scores] (dataclass), não dict.
+ 
+    OBS: os campos "Minute", "HomeScore" e "AwayScore" do código antigo não existem
+    mais como atributos diretos — a lib expõe `action` (tipo do evento), `period`,
+    `stats` (dict de códigos numéricos) e `extra` (campos não mapeados). Se você
+    depende de placar/minuto exatos, provavelmente estão dentro de `stats` ou
+    `extra` — vale dar um st.json(event.stats) / st.json(event.extra) num evento
+    real pra ver as chaves disponíveis e ajustar o mapeamento abaixo.
+    """
     if not events:
         return
-
+ 
     records = []
-
+ 
     for event in events:
-        ts = event.get("Ts")
+        ts = event.ts
         timestamp = pd.to_datetime(ts, unit="ms", utc=True).isoformat() if ts else None
-        
-        # Extrai informações do evento
-        event_type = event.get("Type") or event.get("Action")
-        minute = event.get("Minute")
-        if minute is None:
-            # Tenta extrair do clock se disponível
-            clock = event.get("Clock", {})
-            seconds = clock.get("Seconds", 0)
-            minute = seconds // 60
-
+ 
         records.append({
             "fixture_id": fixture_id,
             "ts": ts,
             "timestamp": timestamp,
-            "event_type": event_type,
-            "minute": minute,
-            "participant": event.get("Participant"),
-            "home_score": event.get("HomeScore"),
-            "away_score": event.get("AwayScore"),
-            "payload": json.dumps(event)
+            "event_type": event.action,
+            "minute": None,  # ajustar conforme stats/extra, ver nota acima
+            "participant": None,  # ajustar conforme stats/extra, ver nota acima
+            "home_score": None,  # ajustar conforme stats/extra, ver nota acima
+            "away_score": None,  # ajustar conforme stats/extra, ver nota acima
+            "payload": json.dumps({
+                "action": event.action,
+                "period": event.period,
+                "status_id": event.status_id,
+                "stats": event.stats,
+                "extra": event.extra,
+            }),
         })
-
+ 
     df = pd.DataFrame(records)
     conn = get_connection()
     df.to_sql("score_events", conn, if_exists="append", index=False)
     conn.close()
-
+ 
     print(f"✅ {len(df)} eventos salvos no banco.")
 
 
